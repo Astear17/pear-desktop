@@ -189,6 +189,11 @@ export const LyricsPicker = (props: {
 
   const closeSearchModal = () => setShowSearchModal(false);
 
+  // A press that starts inside the modal and is released on the backdrop still
+  // dispatches `click` on the backdrop. Track where the press began so a text
+  // selection dragged out of an input doesn't close the modal.
+  let pressedOnBackdrop = false;
+
   const submitCustomQuery = (e: Event) => {
     e.preventDefault();
     const id = videoId();
@@ -432,7 +437,15 @@ export const LyricsPicker = (props: {
 
       <Show when={showSearchModal()}>
         <Portal>
-          <div class="synced-lyrics-modal-backdrop" onClick={closeSearchModal}>
+          <div
+            class="synced-lyrics-modal-backdrop"
+            onClick={() => {
+              if (pressedOnBackdrop) closeSearchModal();
+            }}
+            onMouseDown={(e) => {
+              pressedOnBackdrop = e.target === e.currentTarget;
+            }}
+          >
             <form
               class="synced-lyrics-modal"
               onClick={(e) => e.stopPropagation()}
