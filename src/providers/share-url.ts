@@ -3,16 +3,17 @@ const SI_PARAM_PATTERN = /[?&]si=[^&]*/i;
 
 export const stripMusicSubdomain = (url: string) =>
   url.replace(MUSIC_HOST_PATTERN, '$1youtube.com');
-export const stripSIParam = (url: string) => 
-  url.replace(SI_PARAM_PATTERN, '');
+export const stripSIParam = (url: string) => url.replace(SI_PARAM_PATTERN, '');
 
 export const rewriteShareUrlInput = (root: ParentNode) => {
   const input = root.querySelector<HTMLInputElement>('#share-url');
   if (!input) return false;
 
   let canonicalUrl = input.value;
-  if (window.mainConfig.get('options.stripMusicFromSharedLinks')) canonicalUrl = stripMusicSubdomain(canonicalUrl);
-  if (window.mainConfig.get('options.stripSIFromSharedLinks')) canonicalUrl = stripSIParam(canonicalUrl);
+  if (window.mainConfig.get('options.stripMusicFromSharedLinks'))
+    canonicalUrl = stripMusicSubdomain(canonicalUrl);
+  if (window.mainConfig.get('options.stripSIFromSharedLinks'))
+    canonicalUrl = stripSIParam(canonicalUrl);
   if (canonicalUrl === input.value) return false;
 
   input.value = canonicalUrl;

@@ -213,7 +213,9 @@ export const mainMenuTemplate = async (
               },
             },
             {
-              label: t('main.menu.options.submenu.shared-links.submenu.strip-si'),
+              label: t(
+                'main.menu.options.submenu.shared-links.submenu.strip-si',
+              ),
               type: 'checkbox',
               checked: config.get('options.stripSIFromSharedLinks'),
               click(item: MenuItem) {
