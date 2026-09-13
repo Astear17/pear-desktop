@@ -29,9 +29,6 @@
       "second-instance": {
         "receive-command": "Received command over protocol: \"{{command}}\""
       },
-      "theme": {
-        "css-file-not-found": "CSS file \"{{cssFile}}\" does not exist, ignoring"
-      },
       "unresponsive": {
         "details": "Unresponsive Error!\n{{error}}"
       },
@@ -177,18 +174,15 @@
               "remove-upgrade-button": "Remove upgrade button",
               "use-ytm-icons": "Use original YouTube Music icons",
               "theme": {
-                "dialog": {
-                  "button": {
-                    "cancel": "Cancel",
-                    "remove": "Remove"
-                  },
-                  "remove-theme": "Are you sure you want to remove the custom theme?",
-                  "remove-theme-message": "This will remove the custom theme"
-                },
                 "label": "Theme",
                 "submenu": {
                   "import-css-file": "Import custom CSS file",
-                  "no-theme": "No theme"
+                  "no-theme": "No theme",
+                  "colors": {
+                    "label": "Colors"
+                  },
+                  "reset-colors": "Reset colors",
+                  "open-themes-folder": "Open themes folder"
                 }
               }
             }
@@ -227,6 +221,15 @@
         "default": "{{applicationName}}",
         "with-song-info": "{{applicationName}}: {{artist}} - {{title}}"
       }
+    },
+    "themes": {
+      "consent": {
+        "title": "Run theme code?",
+        "message": "\"{{theme}}\" contains a script that will run with full access to the app.",
+        "detail": "Theme scripts are not sandboxed. This code can read and change your settings, talk to the app, and do anything else the app itself can do. Only allow this if you trust where the theme came from. You can revoke this by removing the theme.",
+        "allow": "Run this theme",
+        "cancel": "Cancel"
+      }
     }
   },
   "plugins": {
@@ -254,53 +257,6 @@
     "audio-only": {
       "description": "Forces audio-only mode — blocks all video streams at network and player level to save RAM and bandwidth",
       "name": "Audio Only"
-    },
-    "custom-theme": {
-      "description": "Applies a custom theme app-wide including colors, with a green-on-black CLI preset",
-      "menu": {
-        "colors": {
-          "label": "Colors",
-          "submenu": {
-            "accent-color": "Accent color",
-            "background-color": "Background color",
-            "surface-color": "Surface color",
-            "text-color": "Text color"
-          }
-        },
-        "reset": {
-          "label": "Reset colors"
-        },
-        "theme": {
-          "label": "Theme",
-          "submenu": {
-            "cli": {
-              "label": "CLI"
-            },
-            "custom": {
-              "label": "Custom"
-            }
-          }
-        }
-      },
-      "name": "Custom Theme",
-      "prompt": {
-        "accent-color": {
-          "label": "Accent color (hex)",
-          "title": "Accent color"
-        },
-        "background-color": {
-          "label": "Background color (hex)",
-          "title": "Background color"
-        },
-        "surface-color": {
-          "label": "Surface color (hex)",
-          "title": "Surface color"
-        },
-        "text-color": {
-          "label": "Text color (hex)",
-          "title": "Text color"
-        }
-      }
     },
     "ambient-mode": {
       "description": "Applies a lighting effect by casting gentle colors from the video, into your screen’s background",

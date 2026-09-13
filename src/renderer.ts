@@ -21,6 +21,7 @@ import { type NextData } from './plugins/synced-lyrics/providers/YTMusic';
 import { startingPages } from './providers/extracted-data';
 import { createShareUrlRewriter } from './providers/share-url';
 import { setupSongInfo } from './providers/song-info-front';
+import { initThemes } from './themes/renderer';
 
 import type { MusicPlayer } from '@/types/music-player';
 import type { MusicPlayerAppElement } from '@/types/music-player-app-element';
@@ -571,6 +572,8 @@ const main = async () => {
 
   await loadAllRendererPlugins();
   isPluginLoaded = true;
+
+  await initThemes();
 
   window.ipcRenderer.on('plugin:unload', async (_event, id: string) => {
     await forceUnloadRendererPlugin(id);

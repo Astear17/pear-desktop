@@ -16,17 +16,30 @@ import { allPlugins } from 'virtual:plugins';
 import { APPLICATION_NAME, setLanguage, t } from '@/i18n';
 
 import * as config from './config';
+import { getThemeOverrides, setThemeOverrides } from './config';
 import { getAllMenuTemplate, loadAllMenuPlugins } from './loader/menu';
 import { restart } from './providers/app-controls';
 import { appIconPath, windowIconPath } from './providers/app-icon';
 import { startingPages } from './providers/extracted-data';
 import promptOptions from './providers/prompt-options';
 import { stripMusicSubdomain } from './providers/share-url';
+import {
+  createThemeFromCssFiles,
+  ensureJsConsent,
+  loadThemes,
+  openThemesFolder,
+} from './themes/main';
 import { refreshTrayIcons } from './tray';
 
 import packageJson from '../package.json';
 
 export type MenuTemplate = Electron.MenuItemConstructorOptions[];
+
+const paletteLabel = (key: string) =>
+  key.charAt(0).toUpperCase() + key.slice(1);
+
+const notifyThemesChanged = (win: BrowserWindow) =>
+  win.webContents.send('peard:themes-changed');
 
 // True only if in-app-menu was loaded on launch
 let inAppMenuActivePromise: Promise<boolean> | undefined;
@@ -361,69 +374,152 @@ export const mainMenuTemplate = async (
               label: t(
                 'main.menu.options.submenu.visual-tweaks.submenu.theme.label',
               ),
-              submenu: [
-                ...((config.get('options.themes')?.length ?? 0) === 0
-                  ? [
-                      {
-                        label: t(
-                          'main.menu.options.submenu.visual-tweaks.submenu.theme.submenu.no-theme',
-                        ),
-                      },
-                    ]
-                  : []),
-                ...(config.get('options.themes')?.map((theme: string) => ({
-                  type: 'normal' as const,
-                  label: theme,
-                  async click() {
-                    const { response } = await dialog.showMessageBox(win, {
-                      type: 'question',
-                      defaultId: 1,
-                      title: t(
-                        'main.menu.options.submenu.visual-tweaks.submenu.theme.dialog.remove-theme',
-                      ),
-                      message: t(
-                        'main.menu.options.submenu.visual-tweaks.submenu.theme.dialog.remove-theme-message',
-                        { theme },
-                      ),
-                      buttons: [
-                        t(
-                          'main.menu.options.submenu.visual-tweaks.submenu.theme.dialog.button.cancel',
-                        ),
-                        t(
-                          'main.menu.options.submenu.visual-tweaks.submenu.theme.dialog.button.remove',
-                        ),
-                      ],
-                    });
+              submenu: (() => {
+                const themes = loadThemes();
+                const selected = themes.find(
+                  (theme) => theme.id === config.get('options.theme'),
+                );
 
-                    if (response === 1) {
-                      config.set(
-                        'options.themes',
-                        config
-                          .get('options.themes')
-                          ?.filter((t) => t !== theme) ?? [],
+                // Selecting a theme deliberately does NOT rebuild this menu.
+                // `refreshMenu` is asynchronous, so a rebuild can land while the
+                // user has the menu open again (very likely when switching
+                // quickly), and replacing the open native menu corrupts it: the
+                // labels stop rendering and only the submenu arrows survive.
+                // Native radio items update their own checked state, and the
+                // Colors submenu below is built per theme rather than from the
+                // selection, so nothing here needs repopulating.
+                const select = async (id: string) => {
+                  const theme = themes.find((entry) => entry.id === id);
+                  if (theme && !(await ensureJsConsent(theme, win))) return;
+
+                  config.set('options.theme', id);
+                  notifyThemesChanged(win);
+                };
+
+                return [
+                  {
+                    label: t(
+                      'main.menu.options.submenu.visual-tweaks.submenu.theme.submenu.no-theme',
+                    ),
+                    type: 'radio' as const,
+                    checked: !selected,
+                    click: () => {
+                      select('').catch((err) =>
+                        console.error('Failed to switch theme:', err),
                       );
-                      innerRefreshMenu();
-                    }
+                    },
                   },
-                })) ?? []),
-                { type: 'separator' },
-                {
-                  label: t(
-                    'main.menu.options.submenu.visual-tweaks.submenu.theme.submenu.import-css-file',
-                  ),
-                  type: 'normal',
-                  async click() {
-                    const { filePaths } = await dialog.showOpenDialog({
-                      filters: [{ name: 'CSS Files', extensions: ['css'] }],
-                      properties: ['openFile', 'multiSelections'],
-                    });
-                    if (filePaths) {
-                      config.set('options.themes', filePaths);
-                      innerRefreshMenu();
-                    }
+                  ...themes.map((theme) => ({
+                    label: theme.name,
+                    toolTip: theme.description,
+                    type: 'radio' as const,
+                    checked: selected?.id === theme.id,
+                    click: () => {
+                      select(theme.id).catch((err) =>
+                        console.error('Failed to switch theme:', err),
+                      );
+                    },
+                  })),
+                  { type: 'separator' as const },
+                  {
+                    label: t(
+                      'main.menu.options.submenu.visual-tweaks.submenu.theme.submenu.colors.label',
+                    ),
+                    enabled: themes.some(
+                      (theme) => Object.keys(theme.palette).length > 0,
+                    ),
+                    // Built per theme, not from the selection: the selection
+                    // must not require a menu rebuild (see `select` above), so
+                    // the palette list cannot be filtered by it. Each theme's
+                    // palette also has its own Reset.
+                    submenu: themes
+                      .filter((theme) => Object.keys(theme.palette).length > 0)
+                      .map((theme) => ({
+                        label: theme.name,
+                        submenu: [
+                          ...Object.keys(theme.palette).map((key) => ({
+                            label: paletteLabel(key),
+                            type: 'normal' as const,
+                            async click() {
+                              const overrides = getThemeOverrides();
+                              const value = await prompt(
+                                {
+                                  title: paletteLabel(key),
+                                  label: paletteLabel(key),
+                                  value:
+                                    overrides[theme.id]?.[key] ??
+                                    theme.palette[key] ??
+                                    '',
+                                  type: 'input',
+                                  inputAttrs: { type: 'text', required: true },
+                                  width: 380,
+                                  ...promptOptions(),
+                                },
+                                win,
+                              );
+
+                              if (typeof value !== 'string' || !value.trim()) {
+                                return;
+                              }
+
+                              setThemeOverrides({
+                                ...overrides,
+                                [theme.id]: {
+                                  ...overrides[theme.id],
+                                  [key]: value.trim(),
+                                },
+                              });
+                              notifyThemesChanged(win);
+                            },
+                          })),
+                          { type: 'separator' as const },
+                          {
+                            label: t(
+                              'main.menu.options.submenu.visual-tweaks.submenu.theme.submenu.reset-colors',
+                            ),
+                            type: 'normal' as const,
+                            click() {
+                              const next = { ...getThemeOverrides() };
+                              delete next[theme.id];
+                              setThemeOverrides(next);
+                              notifyThemesChanged(win);
+                            },
+                          },
+                        ],
+                      })),
                   },
-                },
-              ],
+                  { type: 'separator' as const },
+                  {
+                    label: t(
+                      'main.menu.options.submenu.visual-tweaks.submenu.theme.submenu.import-css-file',
+                    ),
+                    type: 'normal' as const,
+                    async click() {
+                      const { filePaths } = await dialog.showOpenDialog(win, {
+                        filters: [{ name: 'CSS Files', extensions: ['css'] }],
+                        properties: ['openFile', 'multiSelections'],
+                      });
+                      if (filePaths.length === 0) return;
+
+                      const id = createThemeFromCssFiles(filePaths);
+                      if (!id) return;
+
+                      config.set('options.theme', id);
+                      notifyThemesChanged(win);
+                      await refreshMenu(win);
+                    },
+                  },
+                  {
+                    label: t(
+                      'main.menu.options.submenu.visual-tweaks.submenu.theme.submenu.open-themes-folder',
+                    ),
+                    type: 'normal' as const,
+                    click() {
+                      openThemesFolder();
+                    },
+                  },
+                ];
+              })(),
             },
           ],
         },

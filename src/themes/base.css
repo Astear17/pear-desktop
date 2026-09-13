@@ -1,6 +1,16 @@
+/*
+ * Bridge between a theme's palette and YouTube Music's own custom properties.
+ *
+ * The `:root` block holds fallbacks so a theme only has to define the colours
+ * it cares about; the renderer injects the active theme's palette (as
+ * `--pear-theme-<key>`) after this stylesheet, so those values win.
+ *
+ * Only injected while a theme with a palette is selected, so a CSS-only theme
+ * is not force-recoloured.
+ */
 :root {
   --pear-theme-accent: #ff0000;
-  --pear-theme-bg: #030303;
+  --pear-theme-background: #030303;
   --pear-theme-surface: #1f1f1f;
   --pear-theme-text: #ffffff;
 }
@@ -9,27 +19,29 @@
 :root {
   --ytmusic-color-black1: var(--pear-theme-surface) !important;
   --ytmusic-color-black2: var(--pear-theme-surface) !important;
-  --ytmusic-color-black3: var(--pear-theme-bg) !important;
-  --ytmusic-color-black4: var(--pear-theme-bg) !important;
-  --ytmusic-color-blackpure: var(--pear-theme-bg) !important;
+  --ytmusic-color-black3: var(--pear-theme-background) !important;
+  --ytmusic-color-black4: var(--pear-theme-background) !important;
+  --ytmusic-color-blackpure: var(--pear-theme-background) !important;
   --dark-theme-background-color: var(--pear-theme-surface) !important;
-  --yt-spec-base-background: var(--pear-theme-bg) !important;
+  --yt-spec-base-background: var(--pear-theme-background) !important;
   --yt-spec-raised-background: var(--pear-theme-surface) !important;
   --yt-spec-menu-background: var(--pear-theme-surface) !important;
   --yt-spec-general-background-a: var(--pear-theme-surface) !important;
-  --yt-spec-general-background-b: var(--pear-theme-bg) !important;
-  --yt-spec-general-background-c: var(--pear-theme-bg) !important;
-  --yt-spec-snackbar-background: var(--pear-theme-bg) !important;
+  --yt-spec-general-background-b: var(--pear-theme-background) !important;
+  --yt-spec-general-background-c: var(--pear-theme-background) !important;
+  --yt-spec-snackbar-background: var(--pear-theme-background) !important;
   --yt-spec-filled-button-text: var(--pear-theme-surface) !important;
-  --yt-spec-black-pure: var(--pear-theme-bg) !important;
-  --yt-spec-black-1-alpha-98: var(--pear-theme-bg) !important;
+  --yt-spec-black-pure: var(--pear-theme-background) !important;
+  --yt-spec-black-1-alpha-98: var(--pear-theme-background) !important;
   --yt-spec-static-brand-black: var(--pear-theme-surface) !important;
-  --yt-spec-static-overlay-background-solid: var(--pear-theme-bg) !important;
-  --ytmusic-search-background: var(--pear-theme-bg) !important;
+  --yt-spec-static-overlay-background-solid: var(
+    --pear-theme-background
+  ) !important;
+  --ytmusic-search-background: var(--pear-theme-background) !important;
   --paper-toast-background-color: var(--pear-theme-surface) !important;
   --paper-dialog-background-color: var(--pear-theme-surface) !important;
-  background: var(--pear-theme-bg) !important;
-  --ytmusic-background: var(--pear-theme-bg) !important;
+  background: var(--pear-theme-background) !important;
+  --ytmusic-background: var(--pear-theme-background) !important;
 }
 
 /* Text color */

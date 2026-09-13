@@ -41,7 +41,7 @@ import {
 import { refreshMenu, setApplicationMenu } from '@/menu';
 import musicPlayerCss from '@/music-player.css?inline';
 import { defaultAuthProxyConfig } from '@/plugins/auth-proxy-adapter/config';
-import { fileExists, injectCSS, injectCSSAsFile } from '@/plugins/utils/main';
+import { injectCSS } from '@/plugins/utils/main';
 import { restart, setupAppControls } from '@/providers/app-controls';
 import { appIconPath, windowIconPath } from '@/providers/app-icon';
 import {
@@ -54,6 +54,13 @@ import {
   setupSongInfo,
   SongInfoEvent,
 } from '@/providers/song-info';
+import {
+  createThemeFromCssFiles,
+  getThemesDir,
+  openThemesFolder,
+  setupThemes,
+  themesForRenderer,
+} from '@/themes/main';
 import { setUpTray } from '@/tray';
 import { LoggerPrefix } from '@/utils';
 import { isTesting } from '@/utils/testing';
@@ -307,6 +314,17 @@ const initHook = async (win: BrowserWindow) => {
     config.setPartial(`plugins.${name}`, obj, allPluginStubs[name].config),
   );
 
+  ipcMain.handle('peard:get-themes', () => ({
+    themes: themesForRenderer(),
+    selected: config.get('options.theme'),
+    overrides: config.getThemeOverrides(),
+  }));
+  ipcMain.handle('peard:create-theme-from-css', (_, paths: string[]) =>
+    createThemeFromCssFiles(paths),
+  );
+  ipcMain.handle('peard:open-themes-folder', () => openThemesFolder());
+  ipcMain.handle('peard:get-themes-dir', () => getThemesDir());
+
   config.watch((newValue, oldValue) => {
     const newPluginConfigList = (newValue?.plugins ?? {}) as Record<
       string,
@@ -413,24 +431,6 @@ const showNeedToRestartDialog = async (id: string) => {
 
 function initTheme(win: BrowserWindow) {
   injectCSS(win.webContents, musicPlayerCss);
-  // Load user CSS
-  const themes: string[] = config.get('options.themes');
-  if (Array.isArray(themes)) {
-    for (const cssFile of themes) {
-      fileExists(
-        cssFile,
-        () => {
-          injectCSSAsFile(win.webContents, cssFile);
-        },
-        () => {
-          console.warn(
-            LoggerPrefix,
-            t('main.console.theme.css-file-not-found', { cssFile }),
-          );
-        },
-      );
-    }
-  }
 
   win.webContents.once('did-finish-load', () => {
     if (is.dev() && process.env.OPEN_DEVTOOLS) {
@@ -782,6 +782,8 @@ app.whenReady().then(async () => {
     await setLanguage(config.get('options.language') ?? 'en');
     console.log(LoggerPrefix, t('main.console.i18n.loaded'));
   });
+
+  await setupThemes();
 
   // Override the logo baked into the bundle when the original YTM icons are requested
   if (is.macOS() && config.get('options.useYtmIcons')) {
