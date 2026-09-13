@@ -1,8 +1,6 @@
-import trayIcon from '@assets/tray.png?asset&asarUnpack';
+import { dialogIconPath } from '@/providers/app-icon';
 
-const promptOptions = {
+export default () => ({
   customStylesheet: 'dark',
-  icon: trayIcon,
-};
-
-export default () => promptOptions;
+  icon: dialogIconPath(),
+});

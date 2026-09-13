@@ -1,11 +1,8 @@
-import PausedTrayIconWhite from '@assets/tray-paused-white.png?asset&asarUnpack';
-import PausedTrayIcon from '@assets/tray-paused.png?asset&asarUnpack';
-import TrayIconWhite from '@assets/tray-white.png?asset&asarUnpack';
-import TrayIcon from '@assets/tray.png?asset&asarUnpack';
 import { ipcMain, Menu, nativeImage, screen, Tray } from 'electron';
 import is from 'electron-is';
 
 import { APPLICATION_NAME, t } from '@/i18n';
+import { trayIconPaths } from '@/providers/app-icon';
 import { LikeType } from '@/types/datahost-get-state';
 
 import * as config from './config';
@@ -25,6 +22,30 @@ import type { MenuTemplate } from './menu';
 let tray: Electron.Tray | undefined;
 let traySongInfoCallback: SongInfoCallback | null = null;
 let currentLikeStatus: LikeType = LikeType.Indifferent;
+let defaultTrayIcon: Electron.NativeImage = nativeImage.createEmpty();
+let pausedTrayIcon: Electron.NativeImage = nativeImage.createEmpty();
+let trayIsPaused = false;
+
+const computeTrayIcons = () => {
+  const pixelRatio = is.windows()
+    ? screen.getPrimaryDisplay().scaleFactor || 1
+    : 1;
+  const { default: defaultPath, paused: pausedPath } = trayIconPaths();
+  const create = (path: string) =>
+    nativeImage.createFromPath(path).resize({
+      width: 16 * pixelRatio,
+      height: 16 * pixelRatio,
+    });
+
+  return { default: create(defaultPath), paused: create(pausedPath) };
+};
+
+// Rebuilds the tray icons from the current config, e.g. after toggling the icon style.
+export const refreshTrayIcons = () => {
+  if (!tray) return;
+  ({ default: defaultTrayIcon, paused: pausedTrayIcon } = computeTrayIcons());
+  tray.setImage(trayIsPaused ? pausedTrayIcon : defaultTrayIcon);
+};
 
 // The hover popup is drawn in the band the tray tooltip pops up in, so the
 // tooltip can be silenced (empty string = Windows shows nothing) while the
@@ -85,30 +106,7 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
 
   const { playPause, next, previous, like, dislike } = getSongControls(win);
 
-  const pixelRatio = is.windows()
-    ? screen.getPrimaryDisplay().scaleFactor || 1
-    : 1;
-
-  const defaultTrayIcon = nativeImage
-    .createFromPath(
-      is.macOS() || config.get('options.trayForceWhiteIcons')
-        ? TrayIconWhite
-        : TrayIcon,
-    )
-    .resize({
-      width: 16 * pixelRatio,
-      height: 16 * pixelRatio,
-    });
-  const pausedTrayIcon = nativeImage
-    .createFromPath(
-      is.macOS() || config.get('options.trayForceWhiteIcons')
-        ? PausedTrayIconWhite
-        : PausedTrayIcon,
-    )
-    .resize({
-      width: 16 * pixelRatio,
-      height: 16 * pixelRatio,
-    });
+  ({ default: defaultTrayIcon, paused: pausedTrayIcon } = computeTrayIcons());
 
   tray = new Tray(defaultTrayIcon);
 
@@ -235,7 +233,8 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
       });
       updateTrayTooltip();
 
-      tray.setImage(songInfo.isPaused ? pausedTrayIcon : defaultTrayIcon);
+      trayIsPaused = songInfo.isPaused;
+      tray.setImage(trayIsPaused ? pausedTrayIcon : defaultTrayIcon);
     }
   };
   registerCallback(traySongInfoCallback);

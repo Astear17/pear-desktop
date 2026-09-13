@@ -4,7 +4,6 @@ import path from 'node:path';
 import url from 'node:url';
 
 import ErrorHtmlAsset from '@assets/error.html?asset';
-import musicPlayerIcon from '@assets/icon.png?asset&asarUnpack';
 import {
   enhanceWebRequest,
   type BetterSession,
@@ -44,6 +43,7 @@ import musicPlayerCss from '@/music-player.css?inline';
 import { defaultAuthProxyConfig } from '@/plugins/auth-proxy-adapter/config';
 import { fileExists, injectCSS, injectCSSAsFile } from '@/plugins/utils/main';
 import { restart, setupAppControls } from '@/providers/app-controls';
+import { appIconPath, windowIconPath } from '@/providers/app-icon';
 import {
   APP_PROTOCOL,
   handleProtocol,
@@ -270,19 +270,14 @@ electronDebug({
   showDevTools: false, // Disable automatic devTools on new window
 });
 
-let icon = 'assets/icon.png';
-if (process.platform === 'win32') {
-  icon = 'assets/generated/icons/win/icon.ico';
-} else if (process.platform === 'darwin') {
-  icon = 'assets/generated/icons/mac/icon.icns';
-}
+const icon = windowIconPath();
 
 // Without this, Electron's default About panel shows the raw app id instead of a proper name, and no icon.
 app.setAboutPanelOptions({
   applicationName: APPLICATION_NAME,
   applicationVersion: app.getVersion(),
   version: app.getVersion(),
-  iconPath: musicPlayerIcon,
+  iconPath: appIconPath(),
   copyright: `Copyright (c) ${packageJson.author.name} <${packageJson.author.email}> (${packageJson.author.url})`,
   website: packageJson.author.url,
 });
@@ -787,6 +782,11 @@ app.whenReady().then(async () => {
     await setLanguage(config.get('options.language') ?? 'en');
     console.log(LoggerPrefix, t('main.console.i18n.loaded'));
   });
+
+  // Override the logo baked into the bundle when the original YTM icons are requested
+  if (is.macOS() && config.get('options.useYtmIcons')) {
+    app.dock?.setIcon(appIconPath());
+  }
 
   if (config.get('options.autoResetAppCache')) {
     // Clear cache after 20s

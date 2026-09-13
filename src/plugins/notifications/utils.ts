@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import musicPlayerIcon from '@assets/icon.png?asset&asarUnpack';
 import {
   app,
   type BrowserWindow,
@@ -9,6 +8,7 @@ import {
   type Notification,
 } from 'electron';
 
+import { appIconPath } from '@/providers/app-icon';
 import { type SongInfo } from '@/providers/song-info';
 
 import type { NotificationsPluginConfig } from './index';
@@ -50,7 +50,7 @@ export const notificationImage = (
   config: NotificationsPluginConfig,
 ) => {
   if (!songInfo.image) {
-    return musicPlayerIcon;
+    return appIconPath();
   }
 
   if (!config.interactive) {
@@ -75,7 +75,7 @@ export const saveImage = (img: NativeImage, savePath: string) => {
   } catch (error: unknown) {
     console.error('Error writing song icon to disk:');
     console.trace(error);
-    return musicPlayerIcon;
+    return appIconPath();
   }
 
   return savePath;

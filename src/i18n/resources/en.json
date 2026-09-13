@@ -175,6 +175,7 @@
                 }
               },
               "remove-upgrade-button": "Remove upgrade button",
+              "use-ytm-icons": "Use original YouTube Music icons",
               "theme": {
                 "dialog": {
                   "button": {

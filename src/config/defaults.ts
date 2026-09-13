@@ -28,6 +28,7 @@ export interface DefaultConfig {
     trayClickPlayPause: boolean;
     trayMoveToCurrentDesktop: boolean;
     trayForceWhiteIcons: boolean;
+    useYtmIcons: boolean;
     autoResetAppCache: boolean;
     forceSmtc: boolean;
     resumeOnStart: boolean;
@@ -70,6 +71,7 @@ export const defaultConfig: DefaultConfig = {
     trayClickPlayPause: false,
     trayMoveToCurrentDesktop: false,
     trayForceWhiteIcons: false,
+    useYtmIcons: false,
     autoResetAppCache: false,
     forceSmtc: false,
     resumeOnStart: true,

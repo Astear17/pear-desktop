@@ -18,9 +18,11 @@ import { APPLICATION_NAME, setLanguage, t } from '@/i18n';
 import * as config from './config';
 import { getAllMenuTemplate, loadAllMenuPlugins } from './loader/menu';
 import { restart } from './providers/app-controls';
+import { appIconPath, windowIconPath } from './providers/app-icon';
 import { startingPages } from './providers/extracted-data';
 import promptOptions from './providers/prompt-options';
 import { stripMusicSubdomain } from './providers/share-url';
+import { refreshTrayIcons } from './tray';
 
 import packageJson from '../package.json';
 
@@ -251,6 +253,24 @@ export const mainMenuTemplate = async (
                   'options.removeUpgradeButton',
                   item.checked,
                 );
+              },
+            },
+            {
+              label: t(
+                'main.menu.options.submenu.visual-tweaks.submenu.use-ytm-icons',
+              ),
+              type: 'checkbox',
+              checked: config.get('options.useYtmIcons'),
+              click(item: MenuItem) {
+                config.setMenuOption('options.useYtmIcons', item.checked);
+
+                // The window/dock and tray icons can be swapped without a restart
+                if (is.macOS()) {
+                  app.dock?.setIcon(appIconPath());
+                } else {
+                  win.setIcon(windowIconPath());
+                }
+                refreshTrayIcons();
               },
             },
             {
