@@ -926,11 +926,20 @@ app.whenReady().then(async () => {
       return;
     }
 
-    const splited = commandLine.at(-1)?.split(':') ?? [];
+    // Only treat the last argument as a protocol command when it actually
+    // carries the scheme. On Windows a plain relaunch (e.g. clicking the
+    // pinned taskbar icon) has only the executable path in argv, and its
+    // drive-letter colon would otherwise be mistaken for a command separator,
+    // swallowing the launch before the window is restored below.
+    const lastArg = commandLine.at(-1) ?? '';
 
-    if (splited.length > 1) {
-      handleProtocol(splited.shift()!, ...splited);
-      return;
+    if (lastArg.startsWith(`${APP_PROTOCOL}:`)) {
+      const splited = lastArg.split(':');
+
+      if (splited.length > 1) {
+        handleProtocol(splited.shift()!, ...splited);
+        return;
+      }
     }
 
     if (!mainWindow) {
