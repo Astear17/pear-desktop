@@ -128,14 +128,7 @@ export default defineConfig(({ mode }) => {
       sourcemap: isDev ? 'inline' : undefined,
     },
     resolve: {
-      alias: {
-        ...resolveAlias,
-        'custom-electron-prompt': join(
-          __dirname,
-          'vite-plugins',
-          'custom-electron-prompt-stub.ts',
-        ),
-      },
+      alias: resolveAlias,
     },
     server: {
       cors: {

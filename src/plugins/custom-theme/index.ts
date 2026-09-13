@@ -37,36 +37,6 @@ type RendererProperties = {
   clearTheme(): void;
 };
 
-const isHexColor = (value: string): value is `#${string}` =>
-  /^#[0-9a-f]{6}$/i.test(value);
-
-const promptColor = async (
-  window: Electron.BrowserWindow,
-  title: string,
-  label: string,
-  current: string,
-) => {
-  const result = await prompt(
-    {
-      title,
-      label,
-      value: current,
-      type: 'input',
-      inputAttrs: {
-        type: 'text',
-        placeholder: '#rrggbb',
-        required: true,
-        maxLength: 7,
-      },
-      width: 380,
-      ...promptOptions(),
-    },
-    window,
-  );
-
-  return typeof result === 'string' && isHexColor(result) ? result : null;
-};
-
 export default createPlugin<
   unknown,
   unknown,
@@ -85,6 +55,36 @@ export default createPlugin<
     window,
   }: MenuContext<CustomThemeConfig>): Promise<MenuTemplate> => {
     const config = await getConfig();
+
+    const isHexColor = (value: string): value is `#${string}` =>
+      /^#[0-9a-f]{6}$/i.test(value);
+
+    const promptColor = async (
+      win: Electron.BrowserWindow,
+      title: string,
+      label: string,
+      current: string,
+    ) => {
+      const result = await prompt(
+        {
+          title,
+          label,
+          value: current,
+          type: 'input',
+          inputAttrs: {
+            type: 'text',
+            placeholder: '#rrggbb',
+            required: true,
+            maxLength: 7,
+          },
+          width: 380,
+          ...promptOptions(),
+        },
+        win,
+      );
+
+      return typeof result === 'string' && isHexColor(result) ? result : null;
+    };
 
     return [
       {
