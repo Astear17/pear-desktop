@@ -713,8 +713,7 @@
           "submenu": {
             "hide-button-text": "Hide button text",
             "hover-controls": "Show mini-player on tray hover",
-            "refresh-on-play-pause": "Refresh on Play/Pause",
-            "tray-controls": "Open/Close on tray click"
+            "refresh-on-play-pause": "Refresh on Play/Pause"
           }
         },
         "priority": "Notification Priority",

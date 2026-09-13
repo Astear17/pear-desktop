@@ -26,10 +26,20 @@ let tray: Electron.Tray | undefined;
 let traySongInfoCallback: SongInfoCallback | null = null;
 let currentLikeStatus: LikeType = LikeType.Indifferent;
 
-type TrayEvent = (
-  event: Electron.KeyboardEvent,
-  bounds: Electron.Rectangle,
-) => void;
+// The hover popup is drawn in the band the tray tooltip pops up in, so the
+// tooltip can be silenced (empty string = Windows shows nothing) while the
+// popup is visible, and restored from the last known text afterwards.
+let trayTooltipText = '';
+let trayTooltipSuppressed = false;
+
+const updateTrayTooltip = () => {
+  tray?.setToolTip(trayTooltipSuppressed ? '' : trayTooltipText);
+};
+
+export const setTrayTooltipSuppressed = (suppressed: boolean) => {
+  trayTooltipSuppressed = suppressed;
+  updateTrayTooltip();
+};
 
 type MouseMoveEvent = (
   event: Electron.KeyboardEvent,
@@ -38,30 +48,7 @@ type MouseMoveEvent = (
 
 // Plugins load before the tray is created, so queue handlers
 // registered early and apply them once setUpTray runs.
-let pendingClick: TrayEvent | null = null;
-let pendingDoubleClick: TrayEvent | null = null;
 let pendingMouseMove: MouseMoveEvent | null = null;
-
-export const setTrayOnClick = (fn: TrayEvent) => {
-  if (!tray) {
-    pendingClick = fn;
-    return;
-  }
-
-  tray.removeAllListeners('click');
-  tray.on('click', fn);
-};
-
-// Won't do anything on macOS since its disabled
-export const setTrayOnDoubleClick = (fn: TrayEvent) => {
-  if (!tray) {
-    pendingDoubleClick = fn;
-    return;
-  }
-
-  tray.removeAllListeners('double-click');
-  tray.on('double-click', fn);
-};
 
 // macOS and Windows only
 export const setTrayOnMouseMove = (fn: MouseMoveEvent) => {
@@ -125,16 +112,20 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
 
   tray = new Tray(defaultTrayIcon);
 
-  tray.setToolTip(
-    t('main.tray.tooltip.default', {
-      applicationName: APPLICATION_NAME,
-    }),
-  );
+  trayTooltipText = t('main.tray.tooltip.default', {
+    applicationName: APPLICATION_NAME,
+  });
+  updateTrayTooltip();
 
   // MacOS only
   tray.setIgnoreDoubleClickEvents(true);
 
-  tray.on('click', () => {
+  // Windows turns a click that lands within the system double-click time of the
+  // previous one into WM_LBUTTONDBLCLK, and Electron reports that as
+  // 'double-click' *instead* of 'click' (setIgnoreDoubleClickEvents is a no-op
+  // off macOS). Listening to 'click' alone therefore dropped every click that
+  // came too soon after the last one - the "sometimes I have to click twice".
+  const onTrayClick = () => {
     if (config.get('options.trayClickPlayPause')) {
       playPause();
     } else if (win.isVisible()) {
@@ -148,7 +139,10 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
       }
       app.dock?.show();
     }
-  });
+  };
+
+  tray.on('click', onTrayClick);
+  tray.on('double-click', onTrayClick);
 
   const buildTrayMenu = (): Menu => {
     const template: MenuTemplate = [
@@ -234,13 +228,12 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
         return;
       }
 
-      tray.setToolTip(
-        t('main.tray.tooltip.with-song-info', {
-          artist: songInfo.artist,
-          title: songInfo.title,
-          applicationName: APPLICATION_NAME,
-        }),
-      );
+      trayTooltipText = t('main.tray.tooltip.with-song-info', {
+        artist: songInfo.artist,
+        title: songInfo.title,
+        applicationName: APPLICATION_NAME,
+      });
+      updateTrayTooltip();
 
       tray.setImage(songInfo.isPaused ? pausedTrayIcon : defaultTrayIcon);
     }
@@ -248,18 +241,6 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
   registerCallback(traySongInfoCallback);
 
   // Apply any handlers that plugins registered before the tray existed
-  if (pendingClick) {
-    tray.removeAllListeners('click');
-    tray.on('click', pendingClick);
-    pendingClick = null;
-  }
-
-  if (pendingDoubleClick) {
-    tray.removeAllListeners('double-click');
-    tray.on('double-click', pendingDoubleClick);
-    pendingDoubleClick = null;
-  }
-
   if (pendingMouseMove) {
     tray.on('mouse-move', pendingMouseMove);
     pendingMouseMove = null;

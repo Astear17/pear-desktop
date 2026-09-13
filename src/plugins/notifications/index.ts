@@ -20,7 +20,6 @@ export interface NotificationsPluginConfig {
    */
   toastStyle: number;
   refreshOnPlayPause: boolean;
-  trayControls: boolean;
   hideButtonText: boolean;
   hoverControls: boolean;
 }
@@ -32,7 +31,6 @@ export const defaultConfig: NotificationsPluginConfig = {
   interactive: true,
   toastStyle: 1,
   refreshOnPlayPause: false,
-  trayControls: true,
   hideButtonText: false,
   hoverControls: true,
 };

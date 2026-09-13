@@ -59,15 +59,6 @@ export const onMenu = async ({
           submenu: [
             {
               label: t(
-                'plugins.notifications.menu.interactive-settings.submenu.tray-controls',
-              ),
-              type: 'checkbox',
-              checked: config.trayControls,
-              click: (item: MenuItem) =>
-                setConfig({ trayControls: item.checked }),
-            },
-            {
-              label: t(
                 'plugins.notifications.menu.interactive-settings.submenu.hide-button-text',
               ),
               type: 'checkbox',
