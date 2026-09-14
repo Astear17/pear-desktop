@@ -1,7 +1,7 @@
-import musicPlayerIcon from '@assets/icon.png?asset&asarUnpack';
 import { nativeImage, type NativeImage, TouchBar } from 'electron';
 
 import { t } from '@/i18n';
+import { appIconPath } from '@/providers/app-icon';
 import { getSongControls } from '@/providers/song-controls';
 import { registerCallback, SongInfoEvent } from '@/providers/song-info';
 import { Platform } from '@/types/plugins';
@@ -96,7 +96,7 @@ export default createPlugin({
         songImage.icon = (
           songInfo.image
             ? songInfo.image
-            : nativeImage.createFromPath(musicPlayerIcon)
+            : nativeImage.createFromPath(appIconPath())
         ).resize({ height: 23 });
 
         window.setTouchBar(touchBar);

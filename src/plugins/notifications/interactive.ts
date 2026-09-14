@@ -14,7 +14,6 @@ import {
   type SongInfo,
   SongInfoEvent,
 } from '@/providers/song-info';
-import { setTrayOnClick, setTrayOnDoubleClick } from '@/tray';
 import { mediaIcons } from '@/types/media-icons';
 
 import { isHoverPopupVisible } from './hover-popup';
@@ -316,28 +315,6 @@ export default (
       }
     }
   });
-
-  if (config().trayControls) {
-    setTrayOnClick(() => {
-      if (savedNotification) {
-        savedNotification.close();
-        savedNotification = undefined;
-      } else if (savedSongInfo) {
-        sendNotification({
-          ...savedSongInfo,
-          elapsedSeconds: currentSeconds,
-        });
-      }
-    });
-
-    setTrayOnDoubleClick(() => {
-      if (win.isVisible()) {
-        win.hide();
-      } else {
-        win.show();
-      }
-    });
-  }
 
   app.once('before-quit', () => {
     savedNotification?.close();

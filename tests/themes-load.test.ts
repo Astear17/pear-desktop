@@ -1,0 +1,96 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import { join } from 'node:path';
+
+import { expect, test } from '@playwright/test';
+
+import { readThemesFrom } from '../src/themes/load';
+
+const makeDir = () => fs.mkdtempSync(join(os.tmpdir(), 'pear-themes-test-'));
+
+const writeTheme = (
+  root: string,
+  id: string,
+  manifest: unknown,
+  files: Record<string, string> = {},
+) => {
+  const folder = join(root, id);
+  fs.mkdirSync(folder, { recursive: true });
+  fs.writeFileSync(join(folder, 'theme.json'), JSON.stringify(manifest));
+  for (const [name, content] of Object.entries(files)) {
+    fs.writeFileSync(join(folder, name), content);
+  }
+};
+
+test('reads a theme folder, joining its css files in order', () => {
+  const root = makeDir();
+  writeTheme(
+    root,
+    'my-theme',
+    {
+      name: 'My Theme',
+      palette: { accent: '#22c55e' },
+      css: ['a.css', 'b.css'],
+    },
+    { 'a.css': 'a{}', 'b.css': 'b{}' },
+  );
+
+  expect(readThemesFrom(root)).toEqual([
+    {
+      id: 'my-theme',
+      name: 'My Theme',
+      description: undefined,
+      author: undefined,
+      palette: { accent: '#22c55e' },
+      css: 'a{}\nb{}',
+    },
+  ]);
+});
+
+test('a folder without a manifest is skipped, not fatal', () => {
+  const root = makeDir();
+  fs.mkdirSync(join(root, 'no-manifest'));
+  writeTheme(root, 'valid', { name: 'Valid' });
+
+  expect(readThemesFrom(root).map((theme) => theme.id)).toEqual(['valid']);
+});
+
+test('an invalid manifest is skipped and css defaults to empty', () => {
+  const root = makeDir();
+  fs.mkdirSync(join(root, 'broken'), { recursive: true });
+  fs.writeFileSync(join(root, 'broken', 'theme.json'), 'not json');
+  writeTheme(root, 'no-css', { name: 'No CSS' });
+
+  const themes = readThemesFrom(root);
+  expect(themes.map((theme) => theme.id)).toEqual(['no-css']);
+  expect(themes[0].css).toBe('');
+  expect(themes[0].palette).toEqual({});
+});
+
+test('a missing css file is dropped without losing the theme', () => {
+  const root = makeDir();
+  writeTheme(
+    root,
+    'partial',
+    { name: 'Partial', css: ['present.css', 'missing.css'] },
+    { 'present.css': 'present{}' },
+  );
+
+  expect(readThemesFrom(root)[0].css).toBe('present{}');
+});
+
+test('a missing themes directory yields no themes', () => {
+  expect(readThemesFrom(join(os.tmpdir(), 'pear-does-not-exist-xyz'))).toEqual(
+    [],
+  );
+});
+
+test('the id falls back to the folder name when name is absent', () => {
+  const root = makeDir();
+  writeTheme(root, 'folder-name', {});
+
+  expect(readThemesFrom(root)[0]).toMatchObject({
+    id: 'folder-name',
+    name: 'folder-name',
+  });
+});

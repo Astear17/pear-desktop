@@ -29,9 +29,6 @@
       "second-instance": {
         "receive-command": "Received command over protocol: \"{{command}}\""
       },
-      "theme": {
-        "css-file-not-found": "CSS file \"{{cssFile}}\" does not exist, ignoring"
-      },
       "unresponsive": {
         "details": "Unresponsive Error!\n{{error}}"
       },
@@ -175,19 +172,17 @@
                 }
               },
               "remove-upgrade-button": "Remove upgrade button",
+              "use-ytm-icons": "Use original YouTube Music icons",
               "theme": {
-                "dialog": {
-                  "button": {
-                    "cancel": "Cancel",
-                    "remove": "Remove"
-                  },
-                  "remove-theme": "Are you sure you want to remove the custom theme?",
-                  "remove-theme-message": "This will remove the custom theme"
-                },
                 "label": "Theme",
                 "submenu": {
                   "import-css-file": "Import custom CSS file",
-                  "no-theme": "No theme"
+                  "no-theme": "No theme",
+                  "colors": {
+                    "label": "Colors"
+                  },
+                  "reset-colors": "Reset colors",
+                  "open-themes-folder": "Open themes folder"
                 }
               }
             }
@@ -225,6 +220,15 @@
       "tooltip": {
         "default": "{{applicationName}}",
         "with-song-info": "{{applicationName}}: {{artist}} - {{title}}"
+      }
+    },
+    "themes": {
+      "consent": {
+        "title": "Run theme code?",
+        "message": "\"{{theme}}\" contains a script that will run with full access to the app.",
+        "detail": "Theme scripts are not sandboxed. This code can read and change your settings, talk to the app, and do anything else the app itself can do. Only allow this if you trust where the theme came from. You can revoke this by removing the theme.",
+        "allow": "Run this theme",
+        "cancel": "Cancel"
       }
     }
   },
@@ -713,8 +717,7 @@
           "submenu": {
             "hide-button-text": "Hide button text",
             "hover-controls": "Show mini-player on tray hover",
-            "refresh-on-play-pause": "Refresh on Play/Pause",
-            "tray-controls": "Open/Close on tray click"
+            "refresh-on-play-pause": "Refresh on Play/Pause"
           }
         },
         "priority": "Notification Priority",

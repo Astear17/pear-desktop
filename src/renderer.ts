@@ -21,6 +21,7 @@ import { type NextData } from './plugins/synced-lyrics/providers/YTMusic';
 import { startingPages } from './providers/extracted-data';
 import { createShareUrlRewriter } from './providers/share-url';
 import { setupSongInfo } from './providers/song-info-front';
+import { initThemes } from './themes/renderer';
 
 import type { MusicPlayer } from '@/types/music-player';
 import type { MusicPlayerAppElement } from '@/types/music-player-app-element';
@@ -558,19 +559,28 @@ const main = async () => {
   };
 
   setShareUrlRewriterEnabled(
-    window.mainConfig.get('options.stripMusicFromSharedLinks') || window.mainConfig.get('options.stripSIFromSharedLinks'),
+    window.mainConfig.get('options.stripMusicFromSharedLinks') ||
+      window.mainConfig.get('options.stripSIFromSharedLinks'),
   );
   window.ipcRenderer.on(
     'peard:strip-music-from-shared-links',
-    (_event, enabled: boolean) => setShareUrlRewriterEnabled(enabled || window.mainConfig.get('options.stripSIFromSharedLinks')),
+    (_event, enabled: boolean) =>
+      setShareUrlRewriterEnabled(
+        enabled || window.mainConfig.get('options.stripSIFromSharedLinks'),
+      ),
   );
   window.ipcRenderer.on(
     'peard:strip-si-from-shared-links',
-    (_event, enabled: boolean) => setShareUrlRewriterEnabled(enabled || window.mainConfig.get('options.stripMusicFromSharedLinks')),
+    (_event, enabled: boolean) =>
+      setShareUrlRewriterEnabled(
+        enabled || window.mainConfig.get('options.stripMusicFromSharedLinks'),
+      ),
   );
 
   await loadAllRendererPlugins();
   isPluginLoaded = true;
+
+  await initThemes();
 
   window.ipcRenderer.on('plugin:unload', async (_event, id: string) => {
     await forceUnloadRendererPlugin(id);

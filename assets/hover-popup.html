@@ -40,6 +40,7 @@ body {
   object-fit: cover;
   flex-shrink: 0;
   background: #333;
+  cursor: pointer;
 }
 #info {
   flex: 1;
@@ -118,6 +119,7 @@ body {
   document.getElementById('prev').onmousedown = function(e) { e.preventDefault(); document.title = 'act:previous:' + (++n); };
   document.getElementById('next').onmousedown = function(e) { e.preventDefault(); document.title = 'act:next:' + (++n); };
   document.getElementById('pp').onmousedown = function(e) { e.preventDefault(); document.title = 'act:playPause:' + (++n); };
+  document.getElementById('albumArt').onmousedown = function(e) { e.preventDefault(); document.title = 'act:show:' + (++n); };
 
   window.updateSongInfo = function(data) {
     document.getElementById('title').textContent = data.title || 'No song playing';

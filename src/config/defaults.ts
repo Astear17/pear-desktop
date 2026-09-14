@@ -28,6 +28,7 @@ export interface DefaultConfig {
     trayClickPlayPause: boolean;
     trayMoveToCurrentDesktop: boolean;
     trayForceWhiteIcons: boolean;
+    useYtmIcons: boolean;
     autoResetAppCache: boolean;
     forceSmtc: boolean;
     resumeOnStart: boolean;
@@ -39,7 +40,14 @@ export interface DefaultConfig {
     usePodcastParticipantAsArtist: boolean;
     stripMusicFromSharedLinks: boolean;
     stripSIFromSharedLinks: boolean;
-    themes: string[];
+    /** Id of the selected external theme, or '' for no theme. */
+    theme: string;
+    /** Per-theme palette overrides, keyed by theme id then palette key. */
+    themeOverrides: Record<string, Record<string, string>>;
+    /** Hash of the theme JS the user consented to run, keyed by theme id. */
+    themeConsent: Record<string, string>;
+    /** Whether the first-run theme has been seeded. */
+    themesSeeded: boolean;
     customWindowTitle?: string;
   };
   'plugins': Record<string, unknown>;
@@ -70,6 +78,7 @@ export const defaultConfig: DefaultConfig = {
     trayClickPlayPause: false,
     trayMoveToCurrentDesktop: false,
     trayForceWhiteIcons: false,
+    useYtmIcons: false,
     autoResetAppCache: false,
     forceSmtc: false,
     resumeOnStart: true,
@@ -81,7 +90,10 @@ export const defaultConfig: DefaultConfig = {
     usePodcastParticipantAsArtist: false,
     stripMusicFromSharedLinks: false,
     stripSIFromSharedLinks: true,
-    themes: [],
+    theme: '',
+    themeOverrides: {},
+    themeConsent: {},
+    themesSeeded: false,
   },
   'plugins': {},
 };

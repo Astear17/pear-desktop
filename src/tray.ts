@@ -1,11 +1,8 @@
-import PausedTrayIconWhite from '@assets/tray-paused-white.png?asset&asarUnpack';
-import PausedTrayIcon from '@assets/tray-paused.png?asset&asarUnpack';
-import TrayIconWhite from '@assets/tray-white.png?asset&asarUnpack';
-import TrayIcon from '@assets/tray.png?asset&asarUnpack';
 import { ipcMain, Menu, nativeImage, screen, Tray } from 'electron';
 import is from 'electron-is';
 
 import { APPLICATION_NAME, t } from '@/i18n';
+import { trayIconPaths } from '@/providers/app-icon';
 import { LikeType } from '@/types/datahost-get-state';
 
 import * as config from './config';
@@ -25,11 +22,45 @@ import type { MenuTemplate } from './menu';
 let tray: Electron.Tray | undefined;
 let traySongInfoCallback: SongInfoCallback | null = null;
 let currentLikeStatus: LikeType = LikeType.Indifferent;
+let defaultTrayIcon: Electron.NativeImage = nativeImage.createEmpty();
+let pausedTrayIcon: Electron.NativeImage = nativeImage.createEmpty();
+let trayIsPaused = false;
 
-type TrayEvent = (
-  event: Electron.KeyboardEvent,
-  bounds: Electron.Rectangle,
-) => void;
+const computeTrayIcons = () => {
+  const pixelRatio = is.windows()
+    ? screen.getPrimaryDisplay().scaleFactor || 1
+    : 1;
+  const { default: defaultPath, paused: pausedPath } = trayIconPaths();
+  const create = (path: string) =>
+    nativeImage.createFromPath(path).resize({
+      width: 16 * pixelRatio,
+      height: 16 * pixelRatio,
+    });
+
+  return { default: create(defaultPath), paused: create(pausedPath) };
+};
+
+// Rebuilds the tray icons from the current config, e.g. after toggling the icon style.
+export const refreshTrayIcons = () => {
+  if (!tray) return;
+  ({ default: defaultTrayIcon, paused: pausedTrayIcon } = computeTrayIcons());
+  tray.setImage(trayIsPaused ? pausedTrayIcon : defaultTrayIcon);
+};
+
+// The hover popup is drawn in the band the tray tooltip pops up in, so the
+// tooltip can be silenced (empty string = Windows shows nothing) while the
+// popup is visible, and restored from the last known text afterwards.
+let trayTooltipText = '';
+let trayTooltipSuppressed = false;
+
+const updateTrayTooltip = () => {
+  tray?.setToolTip(trayTooltipSuppressed ? '' : trayTooltipText);
+};
+
+export const setTrayTooltipSuppressed = (suppressed: boolean) => {
+  trayTooltipSuppressed = suppressed;
+  updateTrayTooltip();
+};
 
 type MouseMoveEvent = (
   event: Electron.KeyboardEvent,
@@ -38,30 +69,7 @@ type MouseMoveEvent = (
 
 // Plugins load before the tray is created, so queue handlers
 // registered early and apply them once setUpTray runs.
-let pendingClick: TrayEvent | null = null;
-let pendingDoubleClick: TrayEvent | null = null;
 let pendingMouseMove: MouseMoveEvent | null = null;
-
-export const setTrayOnClick = (fn: TrayEvent) => {
-  if (!tray) {
-    pendingClick = fn;
-    return;
-  }
-
-  tray.removeAllListeners('click');
-  tray.on('click', fn);
-};
-
-// Won't do anything on macOS since its disabled
-export const setTrayOnDoubleClick = (fn: TrayEvent) => {
-  if (!tray) {
-    pendingDoubleClick = fn;
-    return;
-  }
-
-  tray.removeAllListeners('double-click');
-  tray.on('double-click', fn);
-};
 
 // macOS and Windows only
 export const setTrayOnMouseMove = (fn: MouseMoveEvent) => {
@@ -98,43 +106,24 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
 
   const { playPause, next, previous, like, dislike } = getSongControls(win);
 
-  const pixelRatio = is.windows()
-    ? screen.getPrimaryDisplay().scaleFactor || 1
-    : 1;
-
-  const defaultTrayIcon = nativeImage
-    .createFromPath(
-      is.macOS() || config.get('options.trayForceWhiteIcons')
-        ? TrayIconWhite
-        : TrayIcon,
-    )
-    .resize({
-      width: 16 * pixelRatio,
-      height: 16 * pixelRatio,
-    });
-  const pausedTrayIcon = nativeImage
-    .createFromPath(
-      is.macOS() || config.get('options.trayForceWhiteIcons')
-        ? PausedTrayIconWhite
-        : PausedTrayIcon,
-    )
-    .resize({
-      width: 16 * pixelRatio,
-      height: 16 * pixelRatio,
-    });
+  ({ default: defaultTrayIcon, paused: pausedTrayIcon } = computeTrayIcons());
 
   tray = new Tray(defaultTrayIcon);
 
-  tray.setToolTip(
-    t('main.tray.tooltip.default', {
-      applicationName: APPLICATION_NAME,
-    }),
-  );
+  trayTooltipText = t('main.tray.tooltip.default', {
+    applicationName: APPLICATION_NAME,
+  });
+  updateTrayTooltip();
 
   // MacOS only
   tray.setIgnoreDoubleClickEvents(true);
 
-  tray.on('click', () => {
+  // Windows turns a click that lands within the system double-click time of the
+  // previous one into WM_LBUTTONDBLCLK, and Electron reports that as
+  // 'double-click' *instead* of 'click' (setIgnoreDoubleClickEvents is a no-op
+  // off macOS). Listening to 'click' alone therefore dropped every click that
+  // came too soon after the last one - the "sometimes I have to click twice".
+  const onTrayClick = () => {
     if (config.get('options.trayClickPlayPause')) {
       playPause();
     } else if (win.isVisible()) {
@@ -148,7 +137,10 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
       }
       app.dock?.show();
     }
-  });
+  };
+
+  tray.on('click', onTrayClick);
+  tray.on('double-click', onTrayClick);
 
   const buildTrayMenu = (): Menu => {
     const template: MenuTemplate = [
@@ -234,32 +226,20 @@ export const setUpTray = (app: Electron.App, win: Electron.BrowserWindow) => {
         return;
       }
 
-      tray.setToolTip(
-        t('main.tray.tooltip.with-song-info', {
-          artist: songInfo.artist,
-          title: songInfo.title,
-          applicationName: APPLICATION_NAME,
-        }),
-      );
+      trayTooltipText = t('main.tray.tooltip.with-song-info', {
+        artist: songInfo.artist,
+        title: songInfo.title,
+        applicationName: APPLICATION_NAME,
+      });
+      updateTrayTooltip();
 
-      tray.setImage(songInfo.isPaused ? pausedTrayIcon : defaultTrayIcon);
+      trayIsPaused = songInfo.isPaused;
+      tray.setImage(trayIsPaused ? pausedTrayIcon : defaultTrayIcon);
     }
   };
   registerCallback(traySongInfoCallback);
 
   // Apply any handlers that plugins registered before the tray existed
-  if (pendingClick) {
-    tray.removeAllListeners('click');
-    tray.on('click', pendingClick);
-    pendingClick = null;
-  }
-
-  if (pendingDoubleClick) {
-    tray.removeAllListeners('double-click');
-    tray.on('double-click', pendingDoubleClick);
-    pendingDoubleClick = null;
-  }
-
   if (pendingMouseMove) {
     tray.on('mouse-move', pendingMouseMove);
     pendingMouseMove = null;
